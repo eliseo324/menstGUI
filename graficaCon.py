@@ -1,64 +1,62 @@
 import sys
-import os
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication  # , QVBoxLayout
-from Vistas.grafica import Ui_MainWindow_grafica
-from descripcionCon import VentanaDescripcion
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as Navi
-from matplotlib.figure import Figure
-import matplotlib
-import pandas as pd
-
-matplotlib.use('Qt5Agg')
-myDir = os.getcwd()
-sys.path.append(myDir)
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
-class GraficaWidget(FigureCanvasQTAgg):
-    def __init__(self, parent=None, dpi=140):
-        figura = Figure(dpi=dpi)
-        # figura.autofmt_xdate()
-        self.ejes1 = figura.add_subplot(111)
-        # self.ejes2 = figura.add_subplot(212)
-        super(GraficaWidget, self).__init__(figura)
-        figura.tight_layout()
-
-
-class VentanaGrafica(QtWidgets.QMainWindow):
+class VentanaGrafica(QMainWindow):
     def __init__(self):
-        super(VentanaGrafica, self).__init__()
-        self.ven_descripcion = VentanaDescripcion()
-        self.ui = Ui_MainWindow_grafica()
-        self.ui.setupUi(self)
-        # self.initWidget()
-        self.grafica()
-        # -----------------------Eventos-----------------------------------------------
-        self.ui.Button_descripcion.clicked.connect(self.abrirDescripcion)
+        QMainWindow.__init__(self)
+        self.setWindowTitle("Simple Web Browser")
+        self.widget = QWidget(self)
 
-    # -----------------------Fin eventos-------------------------------------------
+        # Widget para el navegador
+        self.webview = QWebEngineView()
+        self.webview.load(QUrl("https://www.recursospython.com/"))
+        self.webview.urlChanged.connect(self.url_changed)
 
-    def grafica(self):
-        self.canvas = GraficaWidget(self)
-        self.toolbar = Navi(self.canvas, self.ui.centralwidget)
-        self.ui.horizontalLayout.addWidget(self.toolbar)
-        self.ui.verticalLayout.addWidget(self.canvas)
-        # df_main = pd.read_csv('data/Datosmain.csv')
-        # df_habitos = pd.read_csv('data/DatosHabitos.csv')
-        # x1 = df_main['fecha']
-        # y1 = df_habitos['temperatura']
-        df = pd.read_csv('Datos/data.csv')
-        x1 = df['fecha']
-        y1 = df['temperatura']
-        self.canvas.ejes1.plot_date(x1, y1, fmt='bo--')
-        self.canvas.ejes1.set_xlabel('Fecha')
-        self.canvas.ejes1.set_ylabel('Temperatura')
-        self.canvas.ejes1.xaxis.set_tick_params(rotation=45)  # , labelsize=10)
-        self.canvas.ejes1.grid(True)
-        self.canvas.draw()
+        # Ir hacia atrás
+        self.back_button = QPushButton("<")
+        self.back_button.clicked.connect(self.webview.back)
 
-    def abrirDescripcion(self):
-        pass
-        self.ven_descripcion.show()
+        # Ir hacia adelante
+        self.forward_button = QPushButton(">")
+        self.forward_button.clicked.connect(self.webview.forward)
+
+        # Actualizar la página
+        self.refresh_button = QPushButton("Actualizar")
+        self.refresh_button.clicked.connect(self.webview.reload)
+
+        # Barra de direcciones
+        self.url_text = QLineEdit()
+
+        # Cargar la página actual
+        self.go_button = QPushButton("Ir")
+        self.go_button.clicked.connect(self.url_set)
+
+        self.toplayout = QHBoxLayout()
+        self.toplayout.addWidget(self.back_button)
+        self.toplayout.addWidget(self.forward_button)
+        self.toplayout.addWidget(self.refresh_button)
+        self.toplayout.addWidget(self.url_text)
+        self.toplayout.addWidget(self.go_button)
+
+        self.layout = QVBoxLayout()
+        self.layout.addLayout(self.toplayout)
+        self.layout.addWidget(self.webview)
+
+        self.widget.setLayout(self.layout)
+        self.setCentralWidget(self.widget)
+
+    def url_changed(self, url):
+        """Actualizar la barra de direcciones"""
+        self.url_text.setText(url.toString())
+
+    def url_set(self):
+        """Acceder a un nuevo URL"""
+        self.webview.setUrl(QUrl(self.url_text.text()))
 
 
 if __name__ == "__main__":
